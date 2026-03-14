@@ -1,23 +1,29 @@
-let brushColor="#ff0088"
-let brushSize=12
-let brushType="normal"
+let brushColor = "#ff0088"
+let brushSize = 12
+let brushType = "normal"
 
-let strokes=[]
-let redoStack=[]
-let currentStroke=null
+let strokes = []
+let redoStack = []
+let currentStroke = null
 
-let bgImg
+let bgImg = null
 
-let brushes={}
+let brushes = {}
 
+// ---------- setup ----------
 
 function setup(){
 
-let c=createCanvas(window.innerWidth,window.innerHeight)
+let c = createCanvas(window.innerWidth, window.innerHeight)
+
 c.parent("canvasContainer")
+
+background(20)
 
 }
 
+
+// ---------- main loop ----------
 
 function draw(){
 
@@ -40,55 +46,73 @@ brushes[currentStroke.brush].draw(currentStroke)
 }
 
 
+// ---------- draw background ----------
+
 function drawBackground(){
 
 if(!bgImg) return
 
-let imgRatio=bgImg.width/bgImg.height
-let canvasRatio=width/height
+let imgRatio = bgImg.width / bgImg.height
+let canvasRatio = width / height
 
-let w,h
+let drawW, drawH
 
-if(imgRatio>canvasRatio){
+if(imgRatio > canvasRatio){
 
-w=width
-h=width/imgRatio
+drawW = width
+drawH = width / imgRatio
 
 }else{
 
-h=height
-w=height*imgRatio
+drawH = height
+drawW = height * imgRatio
 
 }
 
-image(bgImg,(width-w)/2,(height-h)/2,w,h)
+image(
+bgImg,
+(width - drawW) / 2,
+(height - drawH) / 2,
+drawW,
+drawH
+)
 
 }
 
+
+// ---------- mouse events ----------
 
 function mousePressed(){
 
-currentStroke={
+currentStroke = {
 
-points:[],
-color:brushColor,
-size:brushSize,
-brush:brushType
+points: [],
+color: brushColor,
+size: brushSize,
+brush: brushType
 
 }
 
-redoStack=[]
+currentStroke.points.push({
+
+x: mouseX,
+y: mouseY
+
+})
+
+redoStack = []
 
 }
 
 
 function mouseDragged(){
 
+if(!currentStroke) return
+
 currentStroke.points.push({
 
-x:mouseX,
-y:mouseY,
-t:millis()
+x: mouseX,
+y: mouseY
 
 })
 
@@ -97,35 +121,55 @@ t:millis()
 
 function mouseReleased(){
 
+if(currentStroke){
+
 strokes.push(currentStroke)
-currentStroke=null
+
+currentStroke = null
+
+}
 
 }
 
 
-document.getElementById("colorPicker").oninput=e=>{
-brushColor=e.target.value
+// ---------- UI ----------
+
+document.getElementById("colorPicker").oninput = e => {
+
+brushColor = e.target.value
+
 }
 
-document.getElementById("sizePicker").oninput=e=>{
-brushSize=e.target.value
+
+document.getElementById("sizePicker").oninput = e => {
+
+brushSize = e.target.value
+
 }
 
-document.getElementById("brushPicker").onchange=e=>{
-brushType=e.target.value
+
+document.getElementById("brushPicker").onchange = e => {
+
+brushType = e.target.value
+
 }
 
-document.getElementById("bgUpload").onchange=e=>{
 
-let file=e.target.files[0]
+// ---------- background upload ----------
 
-let reader=new FileReader()
+document.getElementById("bgUpload").onchange = e => {
 
-reader.onload=function(event){
+let file = e.target.files[0]
 
-loadImage(event.target.result,img=>{
+if(!file) return
 
-bgImg=img
+let reader = new FileReader()
+
+reader.onload = function(event){
+
+loadImage(event.target.result, img => {
+
+bgImg = img
 
 })
 
@@ -135,9 +179,12 @@ reader.readAsDataURL(file)
 
 }
 
-document.getElementById("undoBtn").onclick=()=>{
 
-if(strokes.length>0){
+// ---------- undo ----------
+
+document.getElementById("undoBtn").onclick = () => {
+
+if(strokes.length > 0){
 
 redoStack.push(strokes.pop())
 
@@ -145,9 +192,12 @@ redoStack.push(strokes.pop())
 
 }
 
-document.getElementById("redoBtn").onclick=()=>{
 
-if(redoStack.length>0){
+// ---------- redo ----------
+
+document.getElementById("redoBtn").onclick = () => {
+
+if(redoStack.length > 0){
 
 strokes.push(redoStack.pop())
 
@@ -155,8 +205,11 @@ strokes.push(redoStack.pop())
 
 }
 
-document.getElementById("exportPNG").onclick=()=>{
 
-saveCanvas("movetoon","png")
+// ---------- export ----------
+
+document.getElementById("exportPNG").onclick = () => {
+
+saveCanvas("movetoon", "png")
 
 }
