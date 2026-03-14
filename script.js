@@ -10,19 +10,20 @@ const brushSize = document.getElementById('brushSize');
 
 const btnUndo = document.getElementById('btnUndo');
 const btnRedo = document.getElementById('btnRedo');
-const btnClear = document.getElementById('btnClear');
+const btnClearLines = document.getElementById('btnClearLines');
+const btnClearAll = document.getElementById('btnClearAll');
 const btnExportSVG = document.getElementById('btnExportSVG');
 const btnExportBg = document.getElementById('btnExportBg');
 
 let isDrawing = false;
 let currentPath = null;
-let currentStrokeGroup = null; // สร้าง Group มัดรวมเส้นกับหยดน้ำไว้ด้วยกัน
+let currentStrokeGroup = null; 
 let currentGroup = null; 
+let pathCounter = 0; // ตัวนับเพื่อสร้าง ID ที่ไม่ซ้ำกันให้แต่ละเส้น
 
 let pathsHistory = [];
 let redoStack = [];
 
-// [แก้ปัญหาที่ 1] ตั้งค่าหน้ากระดาษเริ่มต้นให้วาดได้เลยแม้ไม่มีรูป
 function initDefaultCanvas() {
     if (!bgImage.src || bgImage.src === window.location.href) {
         const w = window.innerWidth || 800;
@@ -35,7 +36,6 @@ function initDefaultCanvas() {
 initDefaultCanvas();
 window.addEventListener('resize', initDefaultCanvas);
 
-// จัดการ Import ภาพ
 imageUpload.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -73,12 +73,14 @@ function getCoordinates(e) {
 function startDrawing(e) {
     e.preventDefault();
     isDrawing = true;
+    pathCounter++; // เพิ่มเลข ID
     const { x, y } = getCoordinates(e);
 
-    // สร้าง Group สำหรับ Stroke นี้ (เผื่อรวมหยดน้ำ)
     currentStrokeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
 
     currentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    // ตั้ง ID ให้เส้นนี้ เพื่อให้หยดน้ำใช้อ้างอิงเส้นทาง
+    currentPath.setAttribute('id', `drawnPath_${pathCounter}`); 
     currentPath.setAttribute('d', `M ${x} ${y}`);
     currentPath.setAttribute('stroke', brushColor.value);
     currentPath.setAttribute('stroke-width', brushSize.value);
@@ -110,29 +112,31 @@ function stopDrawing(e) {
     e.preventDefault();
     isDrawing = false;
     
-    // [แก้ปัญหาที่ 2] สร้างหยดน้ำวิ่งเป็น Loop ด้วย Native SVG Animation
+    // สร้างหยดน้ำ (แก้บั๊กโดยใช้ <mpath>)
     if (brushType.value === 'gooey') {
-        const pathData = currentPath.getAttribute('d');
         const pathLength = currentPath.getTotalLength();
         
-        // ถ้ายาวพอ ค่อยสร้างหยดน้ำ
         if (pathLength > 20) {
-            const dropCount = 4; // จำนวนหยดน้ำต่อเส้น
+            const dropCount = 5; 
             for (let i = 0; i < dropCount; i++) {
                 const drop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                // สุ่มขนาดหยดน้ำนิดหน่อยให้ดูเป็นธรรมชาติ
-                const radius = (parseFloat(brushSize.value) / 2) * (0.8 + Math.random() * 0.6);
+                // ปรับให้หยดน้ำใหญ่ขึ้นนิดนึง จะได้ไม่โดนฟิลเตอร์กลืน
+                const radius = (parseFloat(brushSize.value) * 0.7) * (0.8 + Math.random() * 0.5);
                 drop.setAttribute('r', radius);
+                drop.setAttribute('cx', 0); // จำเป็นต้องกำหนดจุดเริ่มต้นเป็น 0
+                drop.setAttribute('cy', 0);
                 drop.setAttribute('fill', brushColor.value);
 
-                // สร้าง Animation
                 const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
-                // สุ่มความเร็ว (2 - 4 วินาที)
-                const duration = (2 + Math.random() * 2).toFixed(1) + 's';
+                const duration = (2 + Math.random() * 3).toFixed(1) + 's';
                 animate.setAttribute('dur', duration);
                 animate.setAttribute('repeatCount', 'indefinite');
-                animate.setAttribute('path', pathData);
 
+                // ใช้ <mpath> โยงไปหา ID ของเส้นที่วาด ชัวร์กว่า 100%
+                const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+                mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#drawnPath_${pathCounter}`);
+                
+                animate.appendChild(mpath);
                 drop.appendChild(animate);
                 currentStrokeGroup.appendChild(drop);
             }
@@ -170,11 +174,27 @@ btnRedo.addEventListener('click', () => {
     }
 });
 
-btnClear.addEventListener('click', () => {
+// ฟังก์ชันล้างแค่เส้น
+btnClearLines.addEventListener('click', () => {
     normalLayer.innerHTML = '';
     gooeyLayer.innerHTML = '';
     pathsHistory = [];
     redoStack = [];
+});
+
+// ฟังก์ชันล้างทั้งหมด (รวมพื้นหลัง)
+btnClearAll.addEventListener('click', () => {
+    normalLayer.innerHTML = '';
+    gooeyLayer.innerHTML = '';
+    pathsHistory = [];
+    redoStack = [];
+    
+    // เอาภาพพื้นหลังออก
+    bgImage.src = '';
+    bgImage.style.display = 'none';
+    imageUpload.value = ''; // เคลียร์ช่อง input file
+    
+    initDefaultCanvas(); // รีเซ็ตหน้ากระดาษกลับเป็นขนาดหน้าจอ
 });
 
 btnExportSVG.addEventListener('click', () => {
