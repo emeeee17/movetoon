@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
 
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>MoveToon - Draw Motion</title>
+<title>MoveToon</title>
 
 <link rel="stylesheet" href="style.css">
 
@@ -26,45 +25,38 @@
 <input type="color" id="colorPicker" value="#ff0088">
 
 <label>Size</label>
-<input type="range" id="sizePicker" min="2" max="60" value="12">
+<input type="range" id="sizePicker" min="2" max="50" value="12">
 
-<label>Effect</label>
-<select id="effectPicker">
+<label>Brush</label>
+
+<select id="brushPicker">
 
 <option value="normal">Normal</option>
-<option value="gooey">Gooey</option>
+<option value="liquid">Liquid</option>
+<option value="electric">Electric</option>
+<option value="smoke">Smoke</option>
+<option value="energy">Energy</option>
 
 </select>
 
 <input type="file" id="bgUpload">
 
-<button id="exportPNG">PNG</button>
+<button id="undoBtn">Undo</button>
+<button id="redoBtn">Redo</button>
 
-<button id="exportSVG">SVG</button>
+<button id="exportPNG">PNG</button>
 
 </div>
 
 <div id="canvasContainer"></div>
 
-
-<svg width="0" height="0">
-<filter id="goo">
-
-<feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
-
-<feColorMatrix in="blur"
-mode="matrix"
-values="
-1 0 0 0 0
-0 1 0 0 0
-0 0 1 0 0
-0 0 0 20 -10
-"/>
-
-</filter>
-</svg>
-
 <script src="app.js"></script>
+
+<script src="brushes/normal.js"></script>
+<script src="brushes/liquid.js"></script>
+<script src="brushes/electric.js"></script>
+<script src="brushes/smoke.js"></script>
+<script src="brushes/energy.js"></script>
 
 </body>
 
