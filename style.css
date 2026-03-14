@@ -1,24 +1,73 @@
-body{
-margin:0;
-background:#111;
-color:white;
-font-family:Arial;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
 }
 
-#toolbar{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-background:#1e1e1e;
-display:flex;
-gap:10px;
-padding:10px;
-align-items:center;
-z-index:10;
+body {
+    background-color: #121212;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
 }
 
-canvas{
-display:block;
-margin-top:60px;
+.toolbar {
+    background-color: #1e1e1e;
+    padding: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    z-index: 10;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+button {
+    background: #9b59b6;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover { background: #8e44ad; }
+
+/* พระเอกของเราคือ Container นี้ */
+.canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: auto; /* ให้เลื่อนดูภาพใหญ่ๆ ได้ */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #2c2c2c;
+}
+
+#bgImage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: none;
+    display: none; /* ซ่อนไว้ก่อนจนกว่าจะอัปโหลด */
+}
+
+#drawingCanvas {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    touch-action: none; /* สำคัญมาก: ป้องกันมือถือเลื่อนหน้าจอตอนวาด */
+    cursor: crosshair;
 }

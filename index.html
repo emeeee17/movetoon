@@ -1,63 +1,63 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>MoveToon</title>
-
-<link rel="stylesheet" href="style.css">
-
-<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Movetoon - Part 1</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
-
 <body>
+    <svg width="0" height="0" style="position: absolute;">
+        <defs>
+            <filter id="gooey">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="gooey" />
+                <feBlend in="SourceGraphic" in2="gooey" />
+            </filter>
+        </defs>
+    </svg>
 
-<div id="toolbar">
+    <div class="toolbar">
+        <div class="tool-group">
+            <label>Import BG:</label>
+            <input type="file" id="imageUpload" accept="image/png, image/jpeg">
+        </div>
+        
+        <div class="tool-group">
+            <label>Brush:</label>
+            <select id="brushType">
+                <option value="normal">Normal Line</option>
+                <option value="gooey">Gooey Effect</option>
+            </select>
+        </div>
 
-<h1>MoveToon</h1>
+        <div class="tool-group">
+            <label>Color:</label>
+            <input type="color" id="brushColor" value="#ff00ff">
+        </div>
 
-<label>Color</label>
-<input type="color" id="colorPicker" value="#ff0088">
+        <div class="tool-group">
+            <label>Size:</label>
+            <input type="range" id="brushSize" min="1" max="50" value="10">
+        </div>
 
-<label>Size</label>
-<input type="range" id="sizePicker" min="2" max="50" value="12">
+        <div class="tool-group actions">
+            <button id="btnUndo">Undo</button>
+            <button id="btnRedo">Redo</button>
+            <button id="btnClear">Clear All</button>
+            <button id="btnExportSVG">Export SVG</button>
+            <button id="btnExportBg">Export BG</button>
+        </div>
+    </div>
 
-<label>Brush</label>
+    <div class="canvas-container" id="canvasContainer">
+        <img id="bgImage" src="" alt="Background">
+        <svg id="drawingCanvas" xmlns="http://www.w3.org/2000/svg">
+            <g id="normalLayer"></g>
+            <g id="gooeyLayer" filter="url(#gooey)"></g>
+        </svg>
+    </div>
 
-<select id="brushPicker">
-
-<option value="normal">Normal</option>
-<option value="liquid">Liquid</option>
-<option value="electric">Electric</option>
-<option value="smoke">Smoke</option>
-<option value="energy">Energy</option>
-
-</select>
-
-<input type="file" id="bgUpload">
-
-<button id="undoBtn">Undo</button>
-<button id="redoBtn">Redo</button>
-
-<button id="exportPNG">PNG</button>
-
-</div>
-
-<div id="canvasContainer"></div>
-
-<script src="app.js"></script>
-
-<script src="brushes/normal.js"></script>
-<script src="brushes/liquid.js"></script>
-<script src="brushes/electric.js"></script>
-<script src="brushes/smoke.js"></script>
-<script src="brushes/energy.js"></script>
-
+    <script src="script.js"></script>
 </body>
-
 </html>
