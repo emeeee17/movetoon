@@ -4,12 +4,10 @@ const drawingCanvas = document.getElementById('drawingCanvas');
 const normalLayer = document.getElementById('normalLayer');
 const gooeyLayer = document.getElementById('gooeyLayer');
 
-// Tools
 const brushType = document.getElementById('brushType');
 const brushColor = document.getElementById('brushColor');
 const brushSize = document.getElementById('brushSize');
 
-// Buttons
 const btnUndo = document.getElementById('btnUndo');
 const btnRedo = document.getElementById('btnRedo');
 const btnClear = document.getElementById('btnClear');
@@ -18,11 +16,24 @@ const btnExportBg = document.getElementById('btnExportBg');
 
 let isDrawing = false;
 let currentPath = null;
-let currentGroup = null; // เพื่อจับว่าวาดลง Layer ไหน
+let currentStrokeGroup = null; // สร้าง Group มัดรวมเส้นกับหยดน้ำไว้ด้วยกัน
+let currentGroup = null; 
 
-// History สำหรับ Undo/Redo
 let pathsHistory = [];
 let redoStack = [];
+
+// [แก้ปัญหาที่ 1] ตั้งค่าหน้ากระดาษเริ่มต้นให้วาดได้เลยแม้ไม่มีรูป
+function initDefaultCanvas() {
+    if (!bgImage.src || bgImage.src === window.location.href) {
+        const w = window.innerWidth || 800;
+        const h = window.innerHeight || 600;
+        drawingCanvas.setAttribute('width', w);
+        drawingCanvas.setAttribute('height', h);
+        drawingCanvas.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    }
+}
+initDefaultCanvas();
+window.addEventListener('resize', initDefaultCanvas);
 
 // จัดการ Import ภาพ
 imageUpload.addEventListener('change', (e) => {
@@ -33,11 +44,9 @@ imageUpload.addEventListener('change', (e) => {
             bgImage.src = event.target.result;
             bgImage.style.display = 'block';
             
-            // รอให้ภาพโหลดเสร็จเพื่อเอาขนาดจริง
             bgImage.onload = () => {
                 const w = bgImage.naturalWidth;
                 const h = bgImage.naturalHeight;
-                // ตั้งค่า SVG ให้ขนาดเท่าภาพเป๊ะๆ (นี่คือหัวใจของ Part 2)
                 drawingCanvas.setAttribute('width', w);
                 drawingCanvas.setAttribute('height', h);
                 drawingCanvas.setAttribute('viewBox', `0 0 ${w} ${h}`);
@@ -47,13 +56,11 @@ imageUpload.addEventListener('change', (e) => {
     }
 });
 
-// ระบบวาด (รองรับทั้ง Mouse และ Touch)
 function getCoordinates(e) {
     const rect = drawingCanvas.getBoundingClientRect();
     const scaleX = drawingCanvas.width.baseVal.value / rect.width;
     const scaleY = drawingCanvas.height.baseVal.value / rect.height;
     
-    // จัดการ Event นิ้วและเมาส์
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
 
@@ -64,15 +71,13 @@ function getCoordinates(e) {
 }
 
 function startDrawing(e) {
-    if (!bgImage.src) {
-        alert("กรุณา Import รูปพื้นหลังก่อนครับ!");
-        return;
-    }
     e.preventDefault();
     isDrawing = true;
     const { x, y } = getCoordinates(e);
 
-    // สร้างเส้น SVG
+    // สร้าง Group สำหรับ Stroke นี้ (เผื่อรวมหยดน้ำ)
+    currentStrokeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
     currentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     currentPath.setAttribute('d', `M ${x} ${y}`);
     currentPath.setAttribute('stroke', brushColor.value);
@@ -81,14 +86,15 @@ function startDrawing(e) {
     currentPath.setAttribute('stroke-linecap', 'round');
     currentPath.setAttribute('stroke-linejoin', 'round');
 
-    // เลือกว่าจะใส่ Layer ไหน
+    currentStrokeGroup.appendChild(currentPath);
+
     if (brushType.value === 'gooey') {
         currentGroup = gooeyLayer;
     } else {
         currentGroup = normalLayer;
     }
     
-    currentGroup.appendChild(currentPath);
+    currentGroup.appendChild(currentStrokeGroup);
 }
 
 function draw(e) {
@@ -104,12 +110,40 @@ function stopDrawing(e) {
     e.preventDefault();
     isDrawing = false;
     
-    // บันทึกประวัติ
+    // [แก้ปัญหาที่ 2] สร้างหยดน้ำวิ่งเป็น Loop ด้วย Native SVG Animation
+    if (brushType.value === 'gooey') {
+        const pathData = currentPath.getAttribute('d');
+        const pathLength = currentPath.getTotalLength();
+        
+        // ถ้ายาวพอ ค่อยสร้างหยดน้ำ
+        if (pathLength > 20) {
+            const dropCount = 4; // จำนวนหยดน้ำต่อเส้น
+            for (let i = 0; i < dropCount; i++) {
+                const drop = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                // สุ่มขนาดหยดน้ำนิดหน่อยให้ดูเป็นธรรมชาติ
+                const radius = (parseFloat(brushSize.value) / 2) * (0.8 + Math.random() * 0.6);
+                drop.setAttribute('r', radius);
+                drop.setAttribute('fill', brushColor.value);
+
+                // สร้าง Animation
+                const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+                // สุ่มความเร็ว (2 - 4 วินาที)
+                const duration = (2 + Math.random() * 2).toFixed(1) + 's';
+                animate.setAttribute('dur', duration);
+                animate.setAttribute('repeatCount', 'indefinite');
+                animate.setAttribute('path', pathData);
+
+                drop.appendChild(animate);
+                currentStrokeGroup.appendChild(drop);
+            }
+        }
+    }
+
     pathsHistory.push({
-        element: currentPath,
+        element: currentStrokeGroup,
         parent: currentGroup
     });
-    redoStack = []; // เคลียร์ Redo ถ้ามีการวาดใหม่
+    redoStack = []; 
 }
 
 drawingCanvas.addEventListener('mousedown', startDrawing);
@@ -120,7 +154,6 @@ drawingCanvas.addEventListener('touchstart', startDrawing, {passive: false});
 drawingCanvas.addEventListener('touchmove', draw, {passive: false});
 window.addEventListener('touchend', stopDrawing);
 
-// Undo / Redo
 btnUndo.addEventListener('click', () => {
     if (pathsHistory.length > 0) {
         const lastAction = pathsHistory.pop();
@@ -137,7 +170,6 @@ btnRedo.addEventListener('click', () => {
     }
 });
 
-// Clear
 btnClear.addEventListener('click', () => {
     normalLayer.innerHTML = '';
     gooeyLayer.innerHTML = '';
@@ -145,9 +177,7 @@ btnClear.addEventListener('click', () => {
     redoStack = [];
 });
 
-// Export SVG
 btnExportSVG.addEventListener('click', () => {
-    // เอา SVG มารวมกับ Filter เพื่อให้เอาไปใช้เดี่ยวๆได้
     const serializer = new XMLSerializer();
     let svgString = serializer.serializeToString(drawingCanvas);
     
@@ -159,11 +189,13 @@ btnExportSVG.addEventListener('click', () => {
     link.click();
 });
 
-// Export BG
 btnExportBg.addEventListener('click', () => {
-    if (!bgImage.src) return;
+    if (!bgImage.src || bgImage.src === window.location.href) {
+        alert("ยังไม่ได้ Import พื้นหลังครับ");
+        return;
+    }
     const link = document.createElement("a");
     link.href = bgImage.src;
-    link.download = "movetoon-bg.png"; // หรือ jpg ขึ้นกับที่อัป
+    link.download = "movetoon-bg.png";
     link.click();
 });
